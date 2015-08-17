@@ -1,0 +1,65 @@
+# Maintainer: Stefan Merettig <stefan-merettig at nuriaproject dot org>
+# PKGBUILD file to build the NuriaProject Framework for ArchLinux
+pkgname=nuria-framework-git
+_gitname=Framework
+pkgrel=3
+pkgver=git
+pkgdesc="Qt5 libs providing a HTTP server, Twig and other things"
+arch=('i686' 'x86_64')
+url='http://github.com/NuriaProject/Framework'
+license=('LGPL3')
+depends=('qt5-base>=5.2' 'ncurses')
+conflicts=('nuria-framework')
+makedepends=('clang>=3.4' 'cmake' 'git')
+optdepends=('doxygen: For documentation generation')
+source=(
+	"git+https://github.com/NuriaProject/${_gitname}.git"
+	'git+https://github.com/NuriaProject/Core.git'
+	'git+https://github.com/NuriaProject/Network.git'
+	'git+https://github.com/NuriaProject/Lua.git'
+	'git+https://github.com/NuriaProject/Twig.git'
+	'git+https://github.com/NuriaProject/Tria.git'
+	'git+http://luajit.org/git/luajit-2.0.git'
+)
+md5sums=(SKIP SKIP SKIP SKIP SKIP SKIP SKIP)
+
+pkgver() {
+	cd ${_gitname}
+	printf "r%s" "$(git rev-list --count HEAD)"
+}
+
+build() {
+	cd ${_gitname}
+	
+	# Nuria modules
+	git submodule init
+	for i in Core Network Lua Twig Tria; do
+		git config --local submodule.$i.url $srcdir/$i
+	done
+	
+	# 3rdparty modules
+	for i in luajit-2.0; do
+		git config --local submodule.3rdparty/$i.url $srcdir/$i
+	done
+	
+	# 
+	git submodule update
+	
+	# 
+	mkdir build
+	cd build
+	
+	# 
+	cmake .. -DCMAKE_INSTALL_PREFIX=/usr
+	make
+}
+
+check() {
+	cd ${_gitname}/build
+	make test
+}
+
+package() {
+	cd ${_gitname}/build
+	make DESTDIR="${pkgdir}" install
+}
